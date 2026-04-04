@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Typewriter</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #1c1a17;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Courier New', Courier, monospace;
+      padding: 24px 16px;
+    }
+
+    .card {
+      width: 100%;
+      max-width: 680px;
+      background: #f5f0e3;
+      border-radius: 6px;
+      box-shadow:
+        0 0 0 3px #8b7355,
+        0 0 0 6px #5a4a32,
+        0 8px 32px rgba(0,0,0,0.6);
+      padding: 32px 28px 28px;
+    }
+
+    .label {
+      font-size: 11px;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: #9a8060;
+      margin-bottom: 16px;
+      user-select: none;
+    }
+
+    /* The visible display area */
+    .display-wrapper {
+      position: relative;
+      background: #ede8d5;
+      border: 2px solid #c4b896;
+      border-radius: 3px;
+      min-height: 72px;
+      padding: 14px 16px;
+      cursor: text;
+      overflow: hidden;
+    }
+
+    .display {
+      font-size: clamp(18px, 5vw, 26px);
+      line-height: 1.7;
+      color: #1a1511;
+      letter-spacing: 1.5px;
+      white-space: pre-wrap;
+      word-break: break-all;
+      min-height: 1.7em;
+    }
+
+    /* Each typed character */
+    .char {
+      display: inline;
+      position: relative;
+    }
+
+    /* Underline that fades out after appearing */
+    .char.fresh {
+      animation: stamp 0.25s ease-out forwards;
+    }
+
+    @keyframes stamp {
+      0%   { border-bottom: 2px solid #1a1511; }
+      60%  { border-bottom: 2px solid #1a1511; }
+      100% { border-bottom: 2px solid transparent; }
+    }
+
+    /* Blinking cursor */
+    .cursor {
+      display: inline-block;
+      width: 2px;
+      height: 1.1em;
+      background: #1a1511;
+      vertical-align: text-bottom;
+      animation: blink 0.75s step-start infinite;
+      margin-left: 1px;
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0; }
+    }
+
+    /* Hidden textarea captures keyboard input on all devices */
+    .hidden-input {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      opacity: 0;
+      resize: none;
+      border: none;
+      background: transparent;
+      font-size: 16px; /* prevents iOS zoom */
+      cursor: text;
+      z-index: 1;
+    }
+
+    /* Clear button */
+    .actions {
+      margin-top: 14px;
+      display: flex;
+      justify-content: flex-end;
+    }
+
+    .btn-clear {
+      background: none;
+      border: 1px solid #b0996e;
+      color: #8b7355;
+      font-family: inherit;
+      font-size: 11px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      padding: 5px 14px;
+      border-radius: 3px;
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s;
+    }
+
+    .btn-clear:hover {
+      background: #b0996e;
+      color: #f5f0e3;
+    }
+
+    .hint {
+      margin-top: 18px;
+      font-size: 11px;
+      color: #6b5a42;
+      text-align: center;
+      letter-spacing: 1px;
+    }
+  </style>
+</head>
+<body>
+
+<div class="card">
+  <div class="label">Type your sentence</div>
+
+  <div class="display-wrapper" id="wrapper">
+    <div class="display" id="display">
+      <span class="cursor" id="cursor"></span>
+    </div>
+    <textarea
+      id="hiddenInput"
+      class="hidden-input"
+      autocomplete="off"
+      autocorrect="off"
+      autocapitalize="off"
+      spellcheck="false"
+      aria-label="Type here"
+    ></textarea>
+  </div>
+
+  <div class="actions">
+    <button class="btn-clear" id="btnClear">Clear</button>
+  </div>
+</div>
+
+<p class="hint">Tap to focus &bull; Backspace to delete</p>
+
+<script>
+  const display    = document.getElementById('display');
+  const cursor     = document.getElementById('cursor');
+  const hiddenInput = document.getElementById('hiddenInput');
+  const btnClear   = document.getElementById('btnClear');
+
+  let audioCtx = null;
+  // Store character spans separately to manage them
+  let charSpans = [];
+
+  // ── Audio ────────────────────────────────────────────────────────────────
+
+  function ensureAudio() {
+    if (!audioCtx) {
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    // Resume if suspended (browser autoplay policy)
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    return audioCtx;
+  }
+
+  function playClick() {
+    const ctx = ensureAudio();
+    const now = ctx.currentTime;
+
+    // Short noise burst → band-pass filtered → sharp envelope = typewriter click
+    const duration  = 0.055;
+    const sampleRate = ctx.sampleRate;
+    const bufLen    = Math.ceil(sampleRate * duration);
+    const buffer    = ctx.createBuffer(1, bufLen, sampleRate);
+    const data      = buffer.getChannelData(0);
+
+    for (let i = 0; i < bufLen; i++) {
+      // Exponential decay on white noise
+      data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (bufLen * 0.18));
+    }
+
+    const source = ctx.createBufferSource();
+    source.buffer = buffer;
+
+    // Band-pass around 1.2 kHz for that hard "click" tone
+    const bpf = ctx.createBiquadFilter();
+    bpf.type = 'bandpass';
+    bpf.frequency.value = 1200;
+    bpf.Q.value = 0.8;
+
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(1.4, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+
+    source.connect(bpf);
+    bpf.connect(gain);
+    gain.connect(ctx.destination);
+    source.start(now);
+  }
+
+  function playBackspace() {
+    const ctx = ensureAudio();
+    const now = ctx.currentTime;
+
+    // Slightly softer, lower pitch for backspace
+    const osc = ctx.createOscillator();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(180, now);
+    osc.frequency.exponentialRampToValueAtTime(80, now + 0.04);
+
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(0.25, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.04);
+
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start(now);
+    osc.stop(now + 0.04);
+  }
+
+  // ── Rendering ────────────────────────────────────────────────────────────
+
+  function addChar(ch) {
+    const span = document.createElement('span');
+    span.className = 'char fresh';
+    span.textContent = ch;
+
+    // Remove the animation class after it plays so it doesn't loop
+    span.addEventListener('animationend', () => {
+      span.classList.remove('fresh');
+    });
+
+    display.insertBefore(span, cursor);
+    charSpans.push(span);
+  }
+
+  function removeLastChar() {
+    if (charSpans.length === 0) return;
+    const last = charSpans.pop();
+    display.removeChild(last);
+  }
+
+  function clearAll() {
+    charSpans.forEach(s => display.removeChild(s));
+    charSpans = [];
+    hiddenInput.value = '';
+  }
+
+  // ── Input handling ───────────────────────────────────────────────────────
+
+  // We use the 'input' event to detect what changed rather than 'keydown'
+  // so it works correctly with mobile keyboards (autocomplete, swipe, etc.)
+  let prevValue = '';
+
+  hiddenInput.addEventListener('input', () => {
+    const curr = hiddenInput.value;
+    const prev = prevValue;
+
+    if (curr.length > prev.length) {
+      // Characters added (could be multiple via paste/autocomplete)
+      const added = curr.slice(prev.length);
+      for (const ch of added) {
+        addChar(ch);
+        playClick();
+      }
+    } else if (curr.length < prev.length) {
+      // Characters removed
+      const removed = prev.length - curr.length;
+      for (let i = 0; i < removed; i++) {
+        removeLastChar();
+        playBackspace();
+      }
+    }
+    prevValue = curr;
+  });
+
+  // Ensure focus on tap/click anywhere on card
+  document.getElementById('wrapper').addEventListener('click', () => {
+    hiddenInput.focus();
+  });
+
+  btnClear.addEventListener('click', () => {
+    clearAll();
+    prevValue = '';
+    hiddenInput.focus();
+  });
+
+  // Auto-focus on load (works on desktop)
+  hiddenInput.focus();
+</script>
+</body>
+</html>
