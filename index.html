@@ -8,57 +8,81 @@
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
-      background: #1c1a17;
+      background: #13110e;
       min-height: 100vh;
+      font-family: 'Courier New', Courier, monospace;
+    }
+
+    /* ── Scene: fixed to the bottom, paper grows upward from here ───────────── */
+
+    .scene {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: min(700px, 100vw);
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: center;
-      font-family: 'Courier New', Courier, monospace;
-      padding: 24px 16px;
     }
 
-    .card {
-      width: 100%;
-      max-width: 680px;
-      background: #f5f0e3;
-      border-radius: 6px;
+    /* ── Paper viewport (paper sticking out above machine) ─────────────────── */
+
+    .paper-viewport {
+      width: min(496px, calc(100vw - 64px));
+      height: 44px;                        /* starts as a thin sliver */
+      overflow-y: auto;                    /* scrollable by the user */
+      overflow-x: hidden;
+      /* never taller than the space above the typewriter */
+      max-height: calc(100vh - 310px);
+      background: #f9f6e8;
+      /* paper guide rails */
+      border-left:  8px solid #c8bfa0;
+      border-right: 8px solid #c8bfa0;
       box-shadow:
-        0 0 0 3px #8b7355,
-        0 0 0 6px #5a4a32,
-        0 8px 32px rgba(0,0,0,0.6);
-      padding: 32px 28px 28px;
-    }
-
-    .label {
-      font-size: 11px;
-      letter-spacing: 3px;
-      text-transform: uppercase;
-      color: #9a8060;
-      margin-bottom: 16px;
-      user-select: none;
-    }
-
-    /* The visible display area */
-    .display-wrapper {
-      position: relative;
-      background: #ede8d5;
-      border: 2px solid #c4b896;
-      border-radius: 3px;
-      min-height: 72px;
-      padding: 14px 16px;
+        inset  3px 0 6px rgba(0,0,0,0.10),
+        inset -3px 0 6px rgba(0,0,0,0.10),
+        0 -4px 12px rgba(0,0,0,0.35);
       cursor: text;
-      overflow: hidden;
+      position: relative;
+      transition: height 0.14s ease-out;
+      /* subtle paper-tan scrollbar */
+      scrollbar-width: thin;
+      scrollbar-color: rgba(180,155,105,0.45) transparent;
     }
 
-    .display {
-      font-size: clamp(18px, 5vw, 26px);
+    .paper-viewport::-webkit-scrollbar { width: 4px; }
+    .paper-viewport::-webkit-scrollbar-track { background: transparent; }
+    .paper-viewport::-webkit-scrollbar-thumb {
+      background: rgba(180,155,105,0.45);
+      border-radius: 2px;
+    }
+
+    .paper-content {
+      padding: 22px 10px 16px 14px;
+      font-size: clamp(15px, 4vw, 21px);
       line-height: 1.7;
       color: #1a1511;
       letter-spacing: 1.5px;
       white-space: pre-wrap;
       word-break: break-all;
-      min-height: 1.7em;
+      position: relative;
+    }
+
+    /* Ruled-line texture lives on the content so it moves with the text */
+    .paper-content::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image: repeating-linear-gradient(
+        to bottom,
+        transparent 0px,
+        transparent calc(1.7em - 1px),
+        rgba(90,110,160,0.065) calc(1.7em - 1px),
+        rgba(90,110,160,0.065) 1.7em
+      );
+      background-size: 100% 1.7em;
+      pointer-events: none;
     }
 
     /* Each typed character */
@@ -67,7 +91,6 @@
       position: relative;
     }
 
-    /* Underline that fades out after appearing */
     .char.fresh {
       animation: stamp 0.25s ease-out forwards;
     }
@@ -94,28 +117,266 @@
       50%       { opacity: 0; }
     }
 
-    /* Hidden textarea captures keyboard input on all devices */
+    /* ── Typewriter machine body ─────────────────────────────────────────────── */
+
+    .typewriter-body {
+      width: min(620px, calc(100vw - 32px));
+      background: linear-gradient(170deg, #4f7244 0%, #3a5532 45%, #29401f 100%);
+      border-radius: 10px 10px 28px 28px;
+      box-shadow:
+        0 0 0 5px #1a2e12,
+        0 6px 0 10px #101a09,
+        0 28px 70px rgba(0,0,0,0.8),
+        inset 0 2px 0 rgba(255,255,255,0.13),
+        inset 0 -4px 12px rgba(0,0,0,0.3);
+      padding: 0 clamp(16px, 4vw, 32px) 28px;
+      position: relative;
+    }
+
+    /* ── Paper guide housing ─────────────────────────────────────────────── */
+
+    .paper-guide-housing {
+      height: 28px;
+      display: flex;
+      align-items: stretch;
+      margin: 0 -2px;
+    }
+
+    .guide-shoulder {
+      flex: 1;
+      background: linear-gradient(180deg, #1e3018 0%, #162510 100%);
+      box-shadow: inset 0 4px 8px rgba(0,0,0,0.5);
+    }
+
+    .guide-shoulder.left  { border-radius: 0 0 0 4px; }
+    .guide-shoulder.right { border-radius: 0 0 4px 0; }
+
+    .paper-slot {
+      width: min(496px, calc(100vw - 64px));
+      background: #0c1208;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow:
+        inset 0 6px 14px rgba(0,0,0,0.9),
+        inset 0 -1px rgba(255,255,255,0.03);
+    }
+
+    .platen-roller {
+      width: calc(100% - 10px);
+      height: 13px;
+      background: linear-gradient(180deg,
+        #686868 0%,
+        #404040 40%,
+        #252525 80%,
+        #181818 100%);
+      border-radius: 7px;
+      box-shadow:
+        0 3px 6px rgba(0,0,0,0.6),
+        inset 0 1px 0 rgba(255,255,255,0.16),
+        inset 0 -2px 4px rgba(0,0,0,0.5);
+    }
+
+    /* ── Machine face ────────────────────────────────────────────────────── */
+
+    .machine-face {
+      padding: 16px 0 14px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .machine-brand {
+      font-size: 9px;
+      letter-spacing: 7px;
+      color: rgba(255,255,255,0.2);
+      text-transform: uppercase;
+    }
+
+    .machine-controls {
+      display: flex;
+      gap: clamp(8px, 2vw, 14px);
+      align-items: center;
+    }
+
+    /* Physical embossed buttons on machine face */
+    .btn-machine {
+      background: linear-gradient(180deg, #303030 0%, #1c1c1c 100%);
+      border: none;
+      border-radius: 5px;
+      color: rgba(215, 205, 185, 0.8);
+      font-family: 'Courier New', Courier, monospace;
+      font-size: clamp(8px, 1.8vw, 10px);
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      padding: clamp(5px, 1.5vw, 8px) clamp(10px, 3vw, 18px);
+      cursor: pointer;
+      box-shadow:
+        0 5px 0 rgba(0,0,0,0.6),
+        0 0 0 1px rgba(255,255,255,0.07),
+        inset 0 1px 0 rgba(255,255,255,0.14);
+      transition: transform 0.06s, box-shadow 0.06s, color 0.1s;
+      user-select: none;
+    }
+
+    .btn-machine:hover { color: rgba(215, 205, 185, 1); }
+
+    .btn-machine:active {
+      transform: translateY(3px);
+      box-shadow:
+        0 2px 0 rgba(0,0,0,0.6),
+        0 0 0 1px rgba(255,255,255,0.07),
+        inset 0 1px 0 rgba(255,255,255,0.14);
+    }
+
+    .btn-machine:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .btn-machine.btn-gear {
+      font-size: 16px;
+      padding: clamp(4px, 1.5vw, 6px) clamp(8px, 2.5vw, 13px);
+      letter-spacing: 0;
+    }
+
+    /* ── Decorative keyboard ─────────────────────────────────────────────── */
+
+    .keyboard {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: clamp(6px, 1.2vw, 9px);
+      padding-top: 16px;
+    }
+
+    .key-row { display: flex; gap: clamp(5px, 1vw, 7px); }
+
+    .key {
+      width:  clamp(24px, 4.8vw, 34px);
+      height: clamp(24px, 4.8vw, 34px);
+      border-radius: 50%;
+      background: linear-gradient(145deg, #2c2c2c 0%, #181818 100%);
+      box-shadow:
+        0 4px 0 rgba(0,0,0,0.7),
+        0 0 0 2px rgba(255,255,255,0.07),
+        inset 0 1px 0 rgba(255,255,255,0.16),
+        inset 0 -1px 0 rgba(0,0,0,0.4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: clamp(6px, 1.4vw, 9px);
+      color: rgba(255,255,255,0.38);
+      user-select: none;
+    }
+
+    /* ── Spacebar ────────────────────────────────────────────────────────── */
+
+    .spacebar-row {
+      display: flex;
+      justify-content: center;
+      padding-top: clamp(6px, 1.2vw, 9px);
+    }
+
+    .spacebar {
+      width: min(280px, 55vw);
+      height: clamp(20px, 3.5vw, 26px);
+      background: linear-gradient(180deg, #2e2e2e 0%, #1a1a1a 100%);
+      border-radius: 6px;
+      box-shadow:
+        0 5px 0 rgba(0,0,0,0.7),
+        0 0 0 1px rgba(255,255,255,0.06),
+        inset 0 1px 0 rgba(255,255,255,0.1);
+    }
+
+    /* ── Hidden input ────────────────────────────────────────────────────── */
+
     .hidden-input {
-      position: absolute;
-      top: 0; left: 0;
-      width: 100%; height: 100%;
+      position: fixed;
+      left: -9999px;
+      top: 0;
+      width: 1px;
+      height: 1px;
       opacity: 0;
       resize: none;
       border: none;
       background: transparent;
-      font-size: 16px; /* prevents iOS zoom */
-      cursor: text;
-      z-index: 1;
+      font-size: 16px;
     }
 
-    /* Clear button */
-    .actions {
-      margin-top: 14px;
+    /* ── Settings modal overlay ──────────────────────────────────────────── */
+
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(8, 6, 4, 0.90);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+      padding: 20px 16px;
+      backdrop-filter: blur(3px);
+    }
+
+    .modal-overlay.open { display: flex; }
+
+    .settings-panel {
+      background: #f5f0e3;
+      border-radius: 6px;
+      box-shadow:
+        0 0 0 3px #8b7355,
+        0 0 0 6px #5a4a32,
+        0 16px 50px rgba(0,0,0,0.75);
+      padding: 28px;
+      width: 100%;
+      max-width: 380px;
+    }
+
+    .settings-title {
+      font-size: 11px;
+      letter-spacing: 4px;
+      text-transform: uppercase;
+      color: #9a8060;
+      margin-bottom: 22px;
+    }
+
+    .field-label {
+      display: block;
+      font-size: 10px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: #8b7355;
+      margin-bottom: 8px;
+    }
+
+    .field-hint {
+      font-size: 10px;
+      color: #9a8060;
+      margin-top: 7px;
+      letter-spacing: 0.5px;
+    }
+
+    .field-input {
+      width: 100%;
+      background: #ede8d5;
+      border: 2px solid #c4b896;
+      border-radius: 3px;
+      padding: 9px 12px;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+      color: #1a1511;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+
+    .field-input:focus { border-color: #8b7355; }
+
+    .settings-actions {
       display: flex;
       justify-content: flex-end;
+      gap: 10px;
+      margin-top: 22px;
     }
 
-    .btn-clear {
+    .btn-cancel {
       background: none;
       border: 1px solid #b0996e;
       color: #8b7355;
@@ -129,55 +390,263 @@
       transition: background 0.15s, color 0.15s;
     }
 
-    .btn-clear:hover {
-      background: #b0996e;
+    .btn-cancel:hover { background: #b0996e; color: #f5f0e3; }
+
+    .btn-save {
+      background: #5a4a32;
+      border: 1px solid #5a4a32;
       color: #f5f0e3;
+      font-family: inherit;
+      font-size: 11px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      padding: 5px 14px;
+      border-radius: 3px;
+      cursor: pointer;
+      transition: background 0.15s;
     }
 
-    .hint {
-      margin-top: 18px;
-      font-size: 11px;
-      color: #6b5a42;
-      text-align: center;
-      letter-spacing: 1px;
+    .btn-save:hover { background: #3a2e1e; }
+
+    /* ── Analysis on paper ───────────────────────────────────────────────── */
+
+    .paper-divider {
+      border: none;
+      border-top: 1px dashed #c4b896;
+      margin: 2px 0 0;   /* tight under typed text, analysis sits right below */
+    }
+
+    .paper-analysis-label {
+      font-size: 9px;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: #9a8060;
+      margin-top: 2px;
+      margin-bottom: 1px;
+    }
+
+    .paper-verdict {
+      display: inline-block;
+      font-size: 10px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      padding: 2px 9px;
+      border-radius: 2px;
+      margin-bottom: 5px;
+    }
+
+    .paper-verdict.natural  { background: #d4e8c2; color: #3a6020; border: 1px solid #a8cc88; }
+    .paper-verdict.improved { background: #f0e0b0; color: #7a5810; border: 1px solid #d0b060; }
+
+    .paper-improved-text {
+      font-size: clamp(15px, 4vw, 21px);
+      line-height: 1.7;
+      color: #1a1511;
+      letter-spacing: 1.5px;
+      min-height: 1.7em;
+    }
+
+    .copy-btn {
+      display: inline-block;
+      vertical-align: middle;
+      margin-left: 6px;
+      cursor: pointer;
+      opacity: 0.4;
+      transition: opacity 0.15s;
+      line-height: 1;
+      user-select: none;
+    }
+    .copy-btn:hover { opacity: 0.9; }
+    .copy-btn svg { width: 15px; height: 15px; fill: none; stroke: #5a4a32; stroke-width: 1.8; }
+    .copy-btn.copied svg { stroke: #3a6020; }
+
+    .analysis-cursor {
+      display: inline-block;
+      width: 2px;
+      height: 1em;
+      background: #1a1511;
+      vertical-align: text-bottom;
+      animation: blink 0.75s step-start infinite;
+      margin-left: 1px;
+    }
+
+    .paper-explanation {
+      font-size: 13px;
+      line-height: 1.7;
+      color: #5a4a32;
+      margin-top: 6px;
+    }
+
+    .loading-text {
+      font-size: 13px;
+      color: #9a8060;
+      letter-spacing: 3px;
+      padding: 6px 0 10px;
+    }
+
+    .loading-dot {
+      animation: loadDot 1.2s infinite;
+      opacity: 0;
+    }
+
+    .loading-dot:nth-child(2) { animation-delay: 0.25s; }
+    .loading-dot:nth-child(3) { animation-delay: 0.5s; }
+
+    @keyframes loadDot {
+      0%, 100% { opacity: 0; }
+      50%       { opacity: 1; }
+    }
+
+    .error-text {
+      color: #8b3333;
+      font-size: 13px;
+      line-height: 1.7;
+      padding: 6px 0;
     }
   </style>
 </head>
 <body>
 
-<div class="card">
-  <div class="label">Type your sentence</div>
-
-  <div class="display-wrapper" id="wrapper">
-    <div class="display" id="display">
-      <span class="cursor" id="cursor"></span>
-    </div>
-    <textarea
-      id="hiddenInput"
-      class="hidden-input"
+<!-- Settings Modal -->
+<div class="modal-overlay" id="settingsOverlay">
+  <div class="settings-panel">
+    <div class="settings-title">&#9617; Settings &#9617;</div>
+    <label class="field-label" for="apiKeyInput">API Key</label>
+    <input
+      class="field-input"
+      type="text"
+      id="apiKeyInput"
+      placeholder="sk-..."
       autocomplete="off"
       autocorrect="off"
-      autocapitalize="off"
+      autocapitalize="none"
       spellcheck="false"
-      aria-label="Type here"
-    ></textarea>
-  </div>
-
-  <div class="actions">
-    <button class="btn-clear" id="btnClear">Clear</button>
+    />
+    <p class="field-hint" style="margin-bottom:16px">Stored locally only &mdash; never sent anywhere else</p>
+    <label class="field-label" for="endpointInput">API Endpoint</label>
+    <input
+      class="field-input"
+      type="text"
+      id="endpointInput"
+      autocomplete="off"
+      autocorrect="off"
+      autocapitalize="none"
+      spellcheck="false"
+      style="margin-bottom:4px"
+    />
+    <label class="field-label" style="margin-top:14px" for="modelInput">Model</label>
+    <input
+      class="field-input"
+      type="text"
+      id="modelInput"
+      autocomplete="off"
+      autocorrect="off"
+      autocapitalize="none"
+      spellcheck="false"
+    />
+    <div class="settings-actions">
+      <button class="btn-cancel" id="btnCancelSettings">Cancel</button>
+      <button class="btn-save" id="btnSaveSettings">Save</button>
+    </div>
   </div>
 </div>
 
-<p class="hint">Tap to focus &bull; Backspace to delete</p>
+<div class="scene" id="scene">
+
+  <!-- Paper sticking out of the typewriter -->
+  <div class="paper-viewport" id="paperViewport">
+    <div class="paper-content" id="paperContent"><span class="cursor" id="cursor"></span></div>
+  </div>
+
+  <!-- The typewriter machine body -->
+  <div class="typewriter-body">
+
+    <!-- Paper guide housing: machine shoulders + paper slot -->
+    <div class="paper-guide-housing">
+      <div class="guide-shoulder left"></div>
+      <div class="paper-slot">
+        <div class="platen-roller"></div>
+      </div>
+      <div class="guide-shoulder right"></div>
+    </div>
+
+    <!-- Machine face: brand label + control buttons -->
+    <div class="machine-face">
+      <div class="machine-brand">English Coach</div>
+      <div class="machine-controls">
+        <button class="btn-machine" id="btnAnalyze">Analyze</button>
+        <button class="btn-machine" id="btnClear">Clear</button>
+        <button class="btn-machine btn-gear" id="btnGear" title="Settings">⚙</button>
+      </div>
+    </div>
+
+    <!-- Decorative keyboard rows -->
+    <div class="keyboard">
+      <div class="key-row">
+        <div class="key">Q</div><div class="key">W</div><div class="key">E</div>
+        <div class="key">R</div><div class="key">T</div><div class="key">Y</div>
+        <div class="key">U</div><div class="key">I</div><div class="key">O</div>
+        <div class="key">P</div>
+      </div>
+      <div class="key-row">
+        <div class="key">A</div><div class="key">S</div><div class="key">D</div>
+        <div class="key">F</div><div class="key">G</div><div class="key">H</div>
+        <div class="key">J</div><div class="key">K</div><div class="key">L</div>
+      </div>
+      <div class="key-row">
+        <div class="key">Z</div><div class="key">X</div><div class="key">C</div>
+        <div class="key">V</div><div class="key">B</div><div class="key">N</div>
+        <div class="key">M</div>
+      </div>
+    </div>
+
+    <!-- Spacebar -->
+    <div class="spacebar-row">
+      <div class="spacebar"></div>
+    </div>
+
+  </div><!-- .typewriter-body -->
+
+</div><!-- .scene -->
+
+<!-- Hidden textarea: off-screen focus trap for keyboard input -->
+<textarea
+  id="hiddenInput"
+  class="hidden-input"
+  autocomplete="off"
+  autocorrect="off"
+  autocapitalize="off"
+  spellcheck="false"
+  aria-label="Type here"
+></textarea>
 
 <script>
-  const display    = document.getElementById('display');
-  const cursor     = document.getElementById('cursor');
-  const hiddenInput = document.getElementById('hiddenInput');
-  const btnClear   = document.getElementById('btnClear');
+  const paperContent  = document.getElementById('paperContent');
+  const paperViewport = document.getElementById('paperViewport');
+  const cursor        = document.getElementById('cursor');
+  const hiddenInput   = document.getElementById('hiddenInput');
+  const btnClear      = document.getElementById('btnClear');
+  const btnAnalyze    = document.getElementById('btnAnalyze');
+  const btnGear       = document.getElementById('btnGear');
+  const settingsOverlay = document.getElementById('settingsOverlay');
+  const apiKeyInput    = document.getElementById('apiKeyInput');
+  const endpointInput  = document.getElementById('endpointInput');
+  const modelInput     = document.getElementById('modelInput');
+
+  const DEFAULT_ENDPOINT = 'https://api.deepseek.com/chat/completions';
+  const DEFAULT_MODEL    = 'deepseek-chat';
+
+  // Migrate: clear old Kimi / proxy endpoints saved from previous versions
+  const _ep = localStorage.getItem('kimiEndpoint');
+  if (_ep && !_ep.startsWith('https://api.deepseek.com')) {
+    localStorage.removeItem('kimiEndpoint');
+  }
+  const _m = localStorage.getItem('kimiModel');
+  if (_m && _m !== 'deepseek-chat' && _m !== 'deepseek-reasoner') {
+    localStorage.removeItem('kimiModel');
+  }
 
   let audioCtx = null;
-  // Store character spans separately to manage them
   let charSpans = [];
 
   // ── Audio ────────────────────────────────────────────────────────────────
@@ -186,7 +655,6 @@
     if (!audioCtx) {
       audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     }
-    // Resume if suspended (browser autoplay policy)
     if (audioCtx.state === 'suspended') audioCtx.resume();
     return audioCtx;
   }
@@ -195,22 +663,19 @@
     const ctx = ensureAudio();
     const now = ctx.currentTime;
 
-    // Short noise burst → band-pass filtered → sharp envelope = typewriter click
-    const duration  = 0.055;
+    const duration   = 0.055;
     const sampleRate = ctx.sampleRate;
-    const bufLen    = Math.ceil(sampleRate * duration);
-    const buffer    = ctx.createBuffer(1, bufLen, sampleRate);
-    const data      = buffer.getChannelData(0);
+    const bufLen     = Math.ceil(sampleRate * duration);
+    const buffer     = ctx.createBuffer(1, bufLen, sampleRate);
+    const data       = buffer.getChannelData(0);
 
     for (let i = 0; i < bufLen; i++) {
-      // Exponential decay on white noise
       data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (bufLen * 0.18));
     }
 
     const source = ctx.createBufferSource();
     source.buffer = buffer;
 
-    // Band-pass around 1.2 kHz for that hard "click" tone
     const bpf = ctx.createBiquadFilter();
     bpf.type = 'bandpass';
     bpf.frequency.value = 1200;
@@ -230,7 +695,6 @@
     const ctx = ensureAudio();
     const now = ctx.currentTime;
 
-    // Slightly softer, lower pitch for backspace
     const osc = ctx.createOscillator();
     osc.type = 'sawtooth';
     osc.frequency.setValueAtTime(180, now);
@@ -246,38 +710,50 @@
     osc.stop(now + 0.04);
   }
 
+  // ── Paper feed — grows upward as content accumulates ────────────────────
+
+  const MIN_PAPER_H = 44;  // initial sliver height (px)
+
+  function updatePaperHeight() {
+    // Grow viewport to fit content (CSS max-height caps the growth).
+    const contentH = paperContent.scrollHeight;
+    paperViewport.style.height = Math.max(MIN_PAPER_H, contentH) + 'px';
+    // Keep newest text visible at the bottom.
+    paperViewport.scrollTop = paperViewport.scrollHeight;
+  }
+
+  function scrollToBottom() { updatePaperHeight(); }
+
   // ── Rendering ────────────────────────────────────────────────────────────
 
   function addChar(ch) {
     const span = document.createElement('span');
     span.className = 'char fresh';
     span.textContent = ch;
-
-    // Remove the animation class after it plays so it doesn't loop
-    span.addEventListener('animationend', () => {
-      span.classList.remove('fresh');
-    });
-
-    display.insertBefore(span, cursor);
+    span.addEventListener('animationend', () => span.classList.remove('fresh'));
+    paperContent.insertBefore(span, cursor);
     charSpans.push(span);
+    scrollToBottom();
   }
 
   function removeLastChar() {
     if (charSpans.length === 0) return;
     const last = charSpans.pop();
-    display.removeChild(last);
+    paperContent.removeChild(last);
   }
 
   function clearAll() {
-    charSpans.forEach(s => display.removeChild(s));
+    charSpans.forEach(s => paperContent.removeChild(s));
     charSpans = [];
     hiddenInput.value = '';
+    prevValue = '';
+    const analysis = document.getElementById('paperAnalysis');
+    if (analysis) analysis.remove();
+    updatePaperHeight(); // retract paper back to sliver
   }
 
   // ── Input handling ───────────────────────────────────────────────────────
 
-  // We use the 'input' event to detect what changed rather than 'keydown'
-  // so it works correctly with mobile keyboards (autocomplete, swipe, etc.)
   let prevValue = '';
 
   hiddenInput.addEventListener('input', () => {
@@ -285,36 +761,253 @@
     const prev = prevValue;
 
     if (curr.length > prev.length) {
-      // Characters added (could be multiple via paste/autocomplete)
       const added = curr.slice(prev.length);
-      for (const ch of added) {
-        addChar(ch);
-        playClick();
-      }
+      for (const ch of added) { addChar(ch); playClick(); }
     } else if (curr.length < prev.length) {
-      // Characters removed
       const removed = prev.length - curr.length;
-      for (let i = 0; i < removed; i++) {
-        removeLastChar();
-        playBackspace();
-      }
+      for (let i = 0; i < removed; i++) { removeLastChar(); playBackspace(); }
     }
     prevValue = curr;
   });
 
-  // Ensure focus on tap/click anywhere on card
-  document.getElementById('wrapper').addEventListener('click', () => {
-    hiddenInput.focus();
+  // Enter triggers analysis instead of inserting a newline
+  hiddenInput.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      analyzeText();
+    }
   });
+
+  // Click anywhere on scene → focus hidden input
+  document.getElementById('scene').addEventListener('click', () => hiddenInput.focus());
 
   btnClear.addEventListener('click', () => {
     clearAll();
-    prevValue = '';
     hiddenInput.focus();
   });
 
-  // Auto-focus on load (works on desktop)
   hiddenInput.focus();
+  updatePaperHeight(); // set correct initial sliver height
+
+  // ── Settings ─────────────────────────────────────────────────────────────
+
+  apiKeyInput.value   = localStorage.getItem('kimiApiKey')   || '';
+  endpointInput.value = localStorage.getItem('kimiEndpoint') || DEFAULT_ENDPOINT;
+  modelInput.value    = localStorage.getItem('kimiModel')    || DEFAULT_MODEL;
+
+  btnGear.addEventListener('click', () => settingsOverlay.classList.add('open'));
+
+  document.getElementById('btnCancelSettings').addEventListener('click', () => {
+    settingsOverlay.classList.remove('open');
+  });
+
+  document.getElementById('btnSaveSettings').addEventListener('click', () => {
+    const key      = apiKeyInput.value.trim();
+    const endpoint = endpointInput.value.trim() || DEFAULT_ENDPOINT;
+    const model    = modelInput.value.trim()    || DEFAULT_MODEL;
+
+    if (key) localStorage.setItem('kimiApiKey', key);
+    else localStorage.removeItem('kimiApiKey');
+    localStorage.setItem('kimiEndpoint', endpoint);
+    localStorage.setItem('kimiModel',    model);
+    settingsOverlay.classList.remove('open');
+  });
+
+  settingsOverlay.addEventListener('click', e => {
+    if (e.target === settingsOverlay) settingsOverlay.classList.remove('open');
+  });
+
+  // ── Analysis ─────────────────────────────────────────────────────────────
+
+  btnAnalyze.addEventListener('click', analyzeText);
+
+  async function analyzeText() {
+    const text = charSpans.map(s => s.textContent).join('').trim();
+    if (!text) return;
+
+    const apiKey = localStorage.getItem('kimiApiKey');
+    if (!apiKey) {
+      settingsOverlay.classList.add('open');
+      return;
+    }
+
+    // Remove previous analysis, show loading state on paper
+    const existing = document.getElementById('paperAnalysis');
+    if (existing) existing.remove();
+
+    const analysisEl = document.createElement('div');
+    analysisEl.id = 'paperAnalysis';
+    analysisEl.innerHTML = `
+      <hr class="paper-divider">
+      <div class="loading-text">Analyzing<span class="loading-dot">.</span><span class="loading-dot">.</span><span class="loading-dot">.</span></div>
+    `;
+    paperContent.appendChild(analysisEl);
+    scrollToBottom();
+
+    btnAnalyze.disabled = true;
+
+    try {
+      const endpoint = localStorage.getItem('kimiEndpoint') || DEFAULT_ENDPOINT;
+      const model    = localStorage.getItem('kimiModel')    || DEFAULT_MODEL;
+
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}`
+        },
+        body: JSON.stringify({
+          model,
+          temperature: 0.3,
+          messages: [
+            {
+              role: 'system',
+              content: `You are a native American English language coach. Detect whether the input is Chinese or English, then follow the rules below. Respond ONLY with valid JSON, no other text.
+
+If the input is CHINESE:
+- Translate it into natural, idiomatic American English.
+- Set "input_lang" to "zh".
+- Set "verdict" to "translation".
+- Set "improved" to the translated sentence.
+- Set "explanation" to "".
+
+If the input is ENGLISH:
+- Evaluate whether it sounds like natural, idiomatic American English (including casual spoken American English).
+- Set "input_lang" to "en".
+- If already natural, set "verdict" to "natural", copy the original as "improved", and write a brief encouraging note in "explanation".
+- If it can be improved, set "verdict" to "needs_improvement", set "improved" to the better American English version, and write 1–2 sentences in "explanation" describing the key changes.
+
+JSON format:
+{
+  "input_lang": "zh" or "en",
+  "verdict": "translation" or "natural" or "needs_improvement",
+  "improved": "...",
+  "explanation": "..."
+}`
+            },
+            {
+              role: 'user',
+              content: text
+            }
+          ]
+        })
+      });
+
+      if (!res.ok) {
+        const errBody = await res.json().catch(() => ({}));
+        const msg = errBody.error?.message || errBody.message || res.statusText || 'Unknown error';
+        throw new Error(`[${res.status}] ${msg}`);
+      }
+
+      const data = await res.json();
+      const raw = data.choices[0].message.content.trim();
+
+      // Strip possible markdown code fences the model may add
+      const jsonStr = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '');
+      const result = JSON.parse(jsonStr);
+
+      displayAnalysis(text, result);
+    } catch (err) {
+      document.getElementById('paperAnalysis').innerHTML = `
+        <hr class="paper-divider">
+        <div class="error-text">
+          &#x2717; Failed to analyze.<br>
+          ${escapeHtml(err.message || 'Please check your API key in settings.')}
+        </div>
+      `;
+      scrollToBottom();
+    } finally {
+      btnAnalyze.disabled = false;
+    }
+  }
+
+  function displayAnalysis(originalText, result) {
+    const verdict     = result.verdict;          // 'natural' | 'needs_improvement' | 'translation'
+    const isChinese   = result.input_lang === 'zh' || verdict === 'translation';
+    const isNatural   = verdict === 'natural';
+    const improved    = result.improved || originalText;
+    const explanation = result.explanation || '';
+
+    let verdictClass, verdictLabel;
+    if (isChinese) {
+      verdictClass = 'improved';
+      verdictLabel = '&#10022; Translation';
+    } else if (isNatural) {
+      verdictClass = 'natural';
+      verdictLabel = '&#10003; Sounds natural';
+    } else {
+      verdictClass = 'improved';
+      verdictLabel = '&#10022; Suggested improvement';
+    }
+
+    const analysisEl = document.getElementById('paperAnalysis');
+    analysisEl.innerHTML = `
+      <hr class="paper-divider">
+      <div class="paper-analysis-label">Analysis</div>
+      <span class="paper-verdict ${verdictClass}">${verdictLabel}</span>
+      <div class="paper-improved-text" id="improvedText"></div>
+      <div id="explanationSection" style="display:none">
+        <div class="paper-analysis-label" style="margin-top:10px">Why</div>
+        <div class="paper-explanation" id="explanationText"></div>
+      </div>
+    `;
+    scrollToBottom();
+
+    const improvedEl = document.getElementById('improvedText');
+    const cursorEl   = document.createElement('span');
+    cursorEl.className = 'analysis-cursor';
+    improvedEl.appendChild(cursorEl);
+
+    const chars = [...improved];
+    let i = 0;
+
+    const typeInterval = setInterval(() => {
+      if (i < chars.length) {
+        improvedEl.insertBefore(document.createTextNode(chars[i]), cursorEl);
+        playClick();
+        scrollToBottom();
+        i++;
+      } else {
+        clearInterval(typeInterval);
+        setTimeout(() => {
+          cursorEl.remove();
+
+          // Copy icon
+          const copyBtn = document.createElement('span');
+          copyBtn.className = 'copy-btn';
+          copyBtn.title = 'Copy';
+          copyBtn.innerHTML = `<svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>`;
+          copyBtn.addEventListener('click', () => {
+            navigator.clipboard.writeText(improved).then(() => {
+              copyBtn.classList.add('copied');
+              copyBtn.innerHTML = `<svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>`;
+              setTimeout(() => {
+                copyBtn.classList.remove('copied');
+                copyBtn.innerHTML = `<svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>`;
+              }, 1500);
+            });
+          });
+          improvedEl.appendChild(copyBtn);
+
+          if (!isChinese && explanation) {
+            const expSection = document.getElementById('explanationSection');
+            const expText    = document.getElementById('explanationText');
+            expSection.style.display = 'block';
+            expText.textContent = explanation;
+            scrollToBottom();
+          }
+        }, 400);
+      }
+    }, 35);
+  }
+
+  function escapeHtml(str) {
+    return str
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
 </script>
 </body>
 </html>
